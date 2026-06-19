@@ -67,6 +67,8 @@ I can't promise it won't break yours. Proceed accordingly.
   connsys launcher I patched for the MT6768. WiFi/BT would not exist here without it.
 - The [Galaxy-MT6768](https://github.com/Galaxy-MT6768/android_kernel_samsung_mt6768)
   LineageOS kernel — the kernel tree I build from.
+- Anthropic's **Claude** — used extensively during development for research,
+  debugging, code generation, documentation, and bringing this port together.
 
 The vendor WiFi/BT firmware is **not** in this repo. You harvest it from your own
 device (see [docs/wifi.md](docs/wifi.md)).
