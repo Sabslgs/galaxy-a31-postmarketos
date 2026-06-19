@@ -1,0 +1,49 @@
+# Reference: <https://wiki.postmarketos.org/wiki/Deviceinfo_reference>
+# Samsung Galaxy A31 (samsung-a31) — SM-A315G, MediaTek MT6768 (Helio P65)
+#
+# Every flash/boot value below was confirmed by parsing the *real* boot.img off
+# the device (header v2, board id SRPTA24B005). The offsets matched exactly, and
+# there is NO MediaTek header on the kernel/ramdisk — it's a plain AOSP v2 image.
+
+deviceinfo_format_version="0"
+deviceinfo_name="Samsung Galaxy A31"
+deviceinfo_manufacturer="Samsung"
+deviceinfo_codename="samsung-a31"
+deviceinfo_year="2020"
+deviceinfo_arch="aarch64"
+
+deviceinfo_chassis="handset"
+deviceinfo_keyboard="false"
+deviceinfo_external_storage="true"
+deviceinfo_screen_width="1080"
+deviceinfo_screen_height="2400"
+
+# --- Flashing: Samsung download mode via Heimdall/Odin (confirmed from boot.img) ---
+deviceinfo_flash_method="heimdall-bootimg"
+deviceinfo_generate_bootimg="true"
+deviceinfo_bootimg_qcdt="false"
+deviceinfo_header_version="2"
+deviceinfo_flash_pagesize="2048"
+deviceinfo_flash_offset_base="0x40078000"
+deviceinfo_flash_offset_kernel="0x00008000"
+deviceinfo_flash_offset_ramdisk="0x07c08000"
+deviceinfo_flash_offset_tags="0x0bc08000"
+deviceinfo_flash_offset_second="0x00f00000"   # unused (second size 0); default
+# The v2 boot.img carries a DTB (~97 KB) at the tags address, and there is also a
+# separate dtbo partition (mmcblk0p36). The kernel package builds/packs its dtb.
+
+deviceinfo_kernel_cmdline="bootopt=64S3,32N2,64N2"
+# ^ the baked cmdline is "bootopt=64S3,32N2,64N2 loop.max_part=7".
+#   For bring-up I append (via kernel-cmdline.d): androidboot.selinux=permissive
+#   pmos_debug PMOS_NO_OUTPUT_REDIRECT, and drop quiet/splash.
+
+# Partition map (confirmed): boot=mmcblk0p35, dtbo=p36, recovery(TWRP)=p20,
+# userdata=p52, super=p45, vbmeta=p31, vbmeta_samsung=p32.
+# EFS=p3 / sec_efs=p4 hold the IMEI + modem calibration -> NEVER touch them.
+deviceinfo_flash_heimdall_partition_kernel="BOOT"
+deviceinfo_flash_heimdall_partition_system="USERDATA"
+
+# NOTE: there is NO MediaTek 0x88168858 header on the kernel/ramdisk (verified by
+# parsing the real boot.img) -> do NOT set deviceinfo_bootimg_mtk_label_*.
+
+# First boot is over USB: pmOS comes up on telnet at 172.16.42.1 (RNDIS/CDC).

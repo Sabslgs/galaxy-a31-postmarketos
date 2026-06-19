@@ -1,0 +1,29 @@
+# Build artifacts
+*.o
+*.ko
+mtinit
+mtdaemon
+*.img
+*.tar.gz
+out/
+
+# Vendor firmware — never commit, harvest from your own device
+soc1_0_ram_*
+*_patch_mcu_*
+WMT*.cfg
+wifi.cfg
+WIFI_RAM_CODE*
+*.nvram
+
+# Local config / secrets
+*.local
+wpa*.conf
+secrets.env
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

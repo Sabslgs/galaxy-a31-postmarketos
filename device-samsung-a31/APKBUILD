@@ -1,0 +1,81 @@
+# Reference: <https://postmarketos.org/vendorkernel>
+# Kernel config based on: arch/arm64/configs/a31_defconfig
+maintainer="A31 port <noreply@example.com>"
+pkgname=linux-samsung-a31
+pkgver=4.14.186
+pkgrel=4
+pkgdesc="Samsung Galaxy A31 kernel fork (downstream, Galaxy-MT6768)"
+arch="aarch64"
+_carch="arm64"
+_flavor="samsung-a31"
+url="https://github.com/Galaxy-MT6768/android_kernel_samsung_mt6768"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps pmb:cross-native"
+makedepends="
+	bash
+	bc
+	bison
+	devicepkg-dev
+	findutils
+	flex
+	gmp-dev
+	linux-headers
+	mpc1-dev
+	mpfr-dev
+	openssl-dev
+	perl
+	xz
+"
+
+# Source
+_repository="android_kernel_samsung_mt6768"
+_commit="48d7bfb222e1e722b9c77f78beef056d0011f4cc"
+_config="config-$_flavor.$arch"
+source="
+	$pkgname-$_commit.tar.gz::https://github.com/Galaxy-MT6768/$_repository/archive/$_commit.tar.gz
+	$_config
+"
+builddir="$srcdir/$_repository-$_commit"
+_outdir="out"
+
+prepare() {
+	default_prepare
+	# Keep the kernel's own compiler-gcc.h (the pmOS replacement triggers a
+	# "don't include compiler-gcc.h directly" #error on this tree).
+	REPLACE_GCCH=0 . downstreamkernel_prepare
+	# Drop the forced 'always_inline' from the inline macro (keep __gnu_inline),
+	# else modern GCC fails: "inlining failed ... function body not available".
+	sed -i 's/always_inline, unused/unused/' include/linux/compiler-gcc.h
+	# Samsung ships a prebuilt glibc 'dtc_overlay' that won't run on musl/Alpine;
+	# use the kernel's own freshly-built dtc (supports overlays via -@).
+	sed -i 's,$(srctree)/scripts/dtc/dtc_overlay,$(DTC),g' scripts/Makefile.lib
+	# WiFi connsys patch download: with the 1000-byte fragment the BTIF vFIFO
+	# saturates mid-download (frag ~47) on pmOS and the STP window never recovers.
+	# Shrink the fragment so the connsys MCU drains the FIFO in time.
+	sed -i 's/#define DEFAULT_PATCH_FRAG_SIZE (1000)/#define DEFAULT_PATCH_FRAG_SIZE (256)/' \
+		drivers/misc/mediatek/connectivity/wmt_drv/common_main/core/wmt_ic_soc.c
+	# IST4050 touchscreen: fix the one VLA-with-initializer that modern GCC rejects
+	# ("variable-sized object may not be initialized"), so we can enable touch.
+	sed -i 's/char buff\[msg_len\] = {0, };/char buff[128] = {0, };/' \
+		drivers/input/touchscreen/imagis/ist4050/ist40xx_sec.c
+}
+
+build() {
+	unset LDFLAGS
+	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" \
+		KCFLAGS="-fgnu89-inline" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+}
+
+package() {
+	downstreamkernel_package "$builddir" "$pkgdir" "$_carch" \
+		"$_flavor" "$_outdir"
+	# Samsung's LK bootloader expects a gzip-compressed kernel (stock was ~13 MB
+	# gzip). The uncompressed 30 MB Image overflows the 32 MB boot partition, so
+	# replace the installed vmlinuz with a gzip-compressed kernel.
+	gzip -9 -c "$builddir/$_outdir/arch/$_carch/boot/Image" > "$pkgdir"/boot/vmlinuz
+	make dtbs_install O="$_outdir" ARCH="$_carch" \
+		INSTALL_DTBS_PATH="$pkgdir"/boot/dtbs
+}
+
+sha512sums=""
